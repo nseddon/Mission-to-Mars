@@ -111,36 +111,44 @@ def hemisphere_images(browser):
     html = browser.html
     img_soup = soup(html, 'html.parser')
 
+    # Retrieve all thumbnail image elements
+    hemispheres_rel = img_soup.find_all('a', class_='itemLink product-item')
+    hemispheres_link = []
+    for x in hemispheres_rel:
+        if x.get('href') == "#":
+            continue
+        temp = url + x.get('href')
+        if temp not in hemispheres_link:
+            hemispheres_link.append(temp)
+    
     # Click the thumbnail of the image
-    thumbnail = img_soup.find('div', class_='item')
-    link = thumbnail.a['href']
-    new_link = url + link
-    browser.visit(new_link)
+    for x in hemispheres_link:
+        browser.visit(x)
 
-    # Parse the resulting html with soup
-    html = browser.html
-    img_soup = soup(html, 'html.parser')
+        # Parse the resulting html with soup
+        page_html = browser.html
+        page_img_soup = soup(page_html, 'html.parser')
 
-    # Obtain the download url for the image
-    download_box = img_soup.find('div', class_='downloads')
-    link = download_box.a['href']
-    img_link = url + link
+        # Obtain the download url for the image
+        download_box = page_img_soup.find('div', class_='downloads')
+        link = download_box.a['href']
+        img_link = url + link
+    
+        # Obtain the title of the image
+        img_title_rel = page_img_soup.find('h2', class_='title').text
+    
+        # Dictionary to be inserted as a MongoDB document
+        mars_post = {
+            'title': img_title_rel,
+            'img_url': img_link
+        }
 
-    # Obtain the title of the image
-    img_title_rel = img_soup.find('h2', class_='title').text
-
-    # Dictionary to be inserted as a MongoDB document
-    mars_post = {
-        'title': img_title_rel,
-        'img_url': img_link
-    }
-
-    # Add information to the list
-    if mars_post not in hemisphere_image_urls:
-        hemisphere_image_urls.append(mars_post)
-
-    # Return to original page for next image
-    browser.visit(url)
+        # Add information to the list
+        if mars_post not in hemisphere_image_urls:
+            hemisphere_image_urls.append(mars_post)
+    
+        # Return to original page for next image
+        browser.visit(url)
 
     return hemisphere_image_urls
 

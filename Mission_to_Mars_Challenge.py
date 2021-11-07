@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 # Import Splinter and BeautifulSoup
@@ -13,14 +13,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 
 
-# In[2]:
+# In[3]:
 
 
 executable_path = {'executable_path': ChromeDriverManager().install()}
 browser = Browser('chrome', **executable_path, headless=False)
 
 
-# In[3]:
+# In[ ]:
 
 
 # Visit the mars nasa news site
@@ -30,7 +30,7 @@ browser.visit(url)
 browser.is_element_present_by_css('div.list_text', wait_time=1)
 
 
-# In[4]:
+# In[ ]:
 
 
 html = browser.html
@@ -38,13 +38,13 @@ news_soup = soup(html, 'html.parser')
 slide_elem = news_soup.select_one('div.list_text')
 
 
-# In[5]:
+# In[ ]:
 
 
 slide_elem.find('div', class_='content_title')
 
 
-# In[6]:
+# In[ ]:
 
 
 # Use the parent element to find the first `a` tag and save it as `news_title`
@@ -52,7 +52,7 @@ news_title = slide_elem.find('div', class_='content_title').get_text()
 news_title
 
 
-# In[7]:
+# In[ ]:
 
 
 # Use the parent element to find the paragraph text
@@ -62,7 +62,7 @@ news_p
 
 # ### Featured Images
 
-# In[8]:
+# In[ ]:
 
 
 # Visit URL
@@ -70,7 +70,7 @@ url = 'https://spaceimages-mars.com'
 browser.visit(url)
 
 
-# In[9]:
+# In[ ]:
 
 
 # Find and click the full image button
@@ -78,7 +78,7 @@ full_image_elem = browser.find_by_tag('button')[1]
 full_image_elem.click()
 
 
-# In[10]:
+# In[ ]:
 
 
 # Parse the resulting html with soup
@@ -86,7 +86,7 @@ html = browser.html
 img_soup = soup(html, 'html.parser')
 
 
-# In[11]:
+# In[ ]:
 
 
 # Find the relative image url
@@ -94,7 +94,7 @@ img_url_rel = img_soup.find('img', class_='fancybox-image').get('src')
 img_url_rel
 
 
-# In[12]:
+# In[ ]:
 
 
 # Use the base URL to create an absolute URL
@@ -102,7 +102,7 @@ img_url = f'https://spaceimages-mars.com/{img_url_rel}'
 img_url
 
 
-# In[13]:
+# In[ ]:
 
 
 df = pd.read_html('https://galaxyfacts-mars.com')[0]
@@ -111,13 +111,13 @@ df.set_index('description', inplace=True)
 df.to_html()
 
 
-# In[14]:
+# In[ ]:
 
 
 browser.quit()
 
 
-# In[15]:
+# In[ ]:
 
 
 # Import Splinter, BeautifulSoup, and Pandas
@@ -174,7 +174,7 @@ df.to_html()
 
 
 
-# In[28]:
+# In[149]:
 
 
 # D1: Scrape High-Resolution Mars’ Hemisphere Images and Titles
@@ -184,14 +184,14 @@ url = 'https://marshemispheres.com/'
 browser.visit(url)
 
 
-# In[29]:
+# In[150]:
 
 
 # 2. Create a list to hold the images and titles.
 hemisphere_image_urls = []
 
 
-# In[30]:
+# In[151]:
 
 
 # 3. Write code to retrieve the image urls and titles for each hemisphere.
@@ -199,47 +199,60 @@ hemisphere_image_urls = []
 html = browser.html
 img_soup = soup(html, 'html.parser')
 
+# Retrieve all thumbnail image elements
+hemispheres_rel = img_soup.find_all('a', class_='itemLink product-item')
+hemispheres_link = []
+for x in hemispheres_rel:
+    if x.get('href') == "#":
+        continue
+    temp = url + x.get('href')
+    if temp not in hemispheres_link:
+        hemispheres_link.append(temp)
+
+        
+
+
+# In[155]:
+
+
 # Click the thumbnail of the image
-thumbnail = img_soup.find('div', class_='item')
-link = thumbnail.a['href']
-new_link = url + link
-browser.visit(new_link)
+for x in hemispheres_link:
+    browser.visit(x)
 
-# Parse the resulting html with soup
-html = browser.html
-img_soup = soup(html, 'html.parser')
+    # Parse the resulting html with soup
+    page_html = browser.html
+    page_img_soup = soup(page_html, 'html.parser')
 
-# Obtain the download url for the image
-download_box = img_soup.find('div', class_='downloads')
-link = download_box.a['href']
-img_link = url + link
+    # Obtain the download url for the image
+    download_box = page_img_soup.find('div', class_='downloads')
+    link = download_box.a['href']
+    img_link = url + link
+    
+    # Obtain the title of the image
+    img_title_rel = page_img_soup.find('h2', class_='title').text
+    
+    # Dictionary to be inserted as a MongoDB document
+    mars_post = {
+        'title': img_title_rel,
+        'img_url': img_link
+    }
 
-# Obtain the title of the image
-img_title_rel = img_soup.find('h2', class_='title').text
-
-# Dictionary to be inserted as a MongoDB document
-mars_post = {
-    'title': img_title_rel,
-    'img_url': img_link
-}
-
-# Add information to the list
-if mars_post not in hemisphere_image_urls:
-    hemisphere_image_urls.append(mars_post)
-
-# Return to original page for next image
-browser.visit(url)
+    # Add information to the list
+    if mars_post not in hemisphere_image_urls:
+        hemisphere_image_urls.append(mars_post)
+    
+    # Return to original page for next image
+    browser.visit(url)
 
 
-# In[31]:
+# In[156]:
 
 
 # 4. Print the list that holds the dictionary of each image url and title.
 hemisphere_image_urls
 
 
-# In[32]:
-
+# In[157]:
 
 
 # 5. Quit the browser
