@@ -19,7 +19,8 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        "hemisphere": hemisphere_images(browser)
     }
 
     # Stop webdriver and return data
@@ -96,6 +97,52 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+def hemisphere_images(browser):
+    # 1. Use browser to visit the URL 
+    url = 'https://marshemispheres.com/'
+    browser.visit(url)
+
+    # 2. Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+
+    # 3. Write code to retrieve the image urls and titles for each hemisphere.
+    # Parse the html with soup
+    html = browser.html
+    img_soup = soup(html, 'html.parser')
+
+    # Click the thumbnail of the image
+    thumbnail = img_soup.find('div', class_='item')
+    link = thumbnail.a['href']
+    new_link = url + link
+    browser.visit(new_link)
+
+    # Parse the resulting html with soup
+    html = browser.html
+    img_soup = soup(html, 'html.parser')
+
+    # Obtain the download url for the image
+    download_box = img_soup.find('div', class_='downloads')
+    link = download_box.a['href']
+    img_link = url + link
+
+    # Obtain the title of the image
+    img_title_rel = img_soup.find('h2', class_='title').text
+
+    # Dictionary to be inserted as a MongoDB document
+    mars_post = {
+        'title': img_title_rel,
+        'img_url': img_link
+    }
+
+    # Add information to the list
+    if mars_post not in hemisphere_image_urls:
+        hemisphere_image_urls.append(mars_post)
+
+    # Return to original page for next image
+    browser.visit(url)
+
+    return hemisphere_image_urls
 
 if __name__ == "__main__":
 
